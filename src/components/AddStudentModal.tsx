@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import type { Student, SkillLevel, GCSEGrade } from "../types/index";
+import type { Student, GCSEGrade } from "../types/index";
 
 interface AddStudentModalProps {
   onClose: () => void;

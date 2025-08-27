@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import type { Student, AssessmentResult, MathChapter } from "../types/index";
+import type { Student } from "../types/index";
 
 interface StudentProfileProps {
   student: Student;
