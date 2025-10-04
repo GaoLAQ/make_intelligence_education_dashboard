@@ -1,5 +1,14 @@
 export type SkillLevel = "Beginner" | "Intermediate" | "Advanced" | "Mastered";
-export type GCSEGrade = "U" | "G" | "F" | "E" | "D" | "C" | "B" | "A" | "A_STAR";
+export type GCSEGrade =
+  | "U"
+  | "G"
+  | "F"
+  | "E"
+  | "D"
+  | "C"
+  | "B"
+  | "A"
+  | "A_STAR";
 export type AssessmentType = "Quiz" | "Test" | "Homework" | "Exam" | "Practice";
 
 export interface MathChapter {
