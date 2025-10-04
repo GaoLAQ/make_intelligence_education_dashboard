@@ -1,15 +1,17 @@
-import React, { useState } from "react";
-import type { Student, GCSEGrade } from "../types/index";
+"use client";
+
+import { FormEvent, useState } from "react";
+import type { GCSEGrade, Student } from "@/lib/types";
 
 interface AddStudentModalProps {
   onClose: () => void;
-  onAddStudent: (student: Omit<Student, "id">) => void;
+  onAddStudent: (student: Omit<Student, "id">) => Promise<void>;
 }
 
-const AddStudentModal: React.FC<AddStudentModalProps> = ({
+export default function AddStudentModal({
   onClose,
   onAddStudent,
-}) => {
+}: AddStudentModalProps) {
   const [formData, setFormData] = useState({
     name: "",
     grade: "Year 10",
@@ -18,8 +20,8 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({
     currentGrade: "C" as GCSEGrade,
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
 
     const newStudent: Omit<Student, "id"> = {
       name: formData.name,
@@ -36,21 +38,22 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({
       recentAssessments: [],
     };
 
-    onAddStudent(newStudent);
+    await onAddStudent(newStudent);
+    onClose();
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full">
-        <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-6 rounded-t-2xl">
-          <div className="flex justify-between items-center">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+      <div className="w-full max-w-2xl rounded-2xl bg-white shadow-2xl">
+        <div className="rounded-t-2xl bg-gradient-to-r from-blue-600 to-purple-600 p-6 text-white">
+          <div className="flex items-center justify-between">
             <h2 className="text-2xl font-bold">Add New Student</h2>
             <button
               onClick={onClose}
-              className="text-white hover:text-gray-200 transition-colors"
+              className="text-white transition-colors hover:text-gray-200"
             >
               <svg
-                className="w-6 h-6"
+                className="h-6 w-6"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -66,35 +69,35 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <form onSubmit={handleSubmit} className="space-y-6 p-6">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="mb-2 block text-sm font-medium text-gray-700">
                 Full Name *
               </label>
               <input
                 type="text"
                 required
                 value={formData.name}
-                onChange={(e) =>
-                  setFormData({ ...formData, name: e.target.value })
+                onChange={(event) =>
+                  setFormData({ ...formData, name: event.target.value })
                 }
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Enter student's full name"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="mb-2 block text-sm font-medium text-gray-700">
                 Year Group *
               </label>
               <select
                 required
                 value={formData.grade}
-                onChange={(e) =>
-                  setFormData({ ...formData, grade: e.target.value })
+                onChange={(event) =>
+                  setFormData({ ...formData, grade: event.target.value })
                 }
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="Year 7">Year 7</option>
                 <option value="Year 8">Year 8</option>
@@ -105,34 +108,34 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="mb-2 block text-sm font-medium text-gray-700">
                 Email Address *
               </label>
               <input
                 type="email"
                 required
                 value={formData.email}
-                onChange={(e) =>
-                  setFormData({ ...formData, email: e.target.value })
+                onChange={(event) =>
+                  setFormData({ ...formData, email: event.target.value })
                 }
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="student@school.edu"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="mb-2 block text-sm font-medium text-gray-700">
                 Current Grade
               </label>
               <select
                 value={formData.currentGrade}
-                onChange={(e) =>
+                onChange={(event) =>
                   setFormData({
                     ...formData,
-                    currentGrade: e.target.value as GCSEGrade,
+                    currentGrade: event.target.value as GCSEGrade,
                   })
                 }
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="U">U</option>
                 <option value="G">G</option>
@@ -147,19 +150,19 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="mb-2 block text-sm font-medium text-gray-700">
                 Target Grade *
               </label>
               <select
                 required
                 value={formData.targetGrade}
-                onChange={(e) =>
+                onChange={(event) =>
                   setFormData({
                     ...formData,
-                    targetGrade: e.target.value as GCSEGrade,
+                    targetGrade: event.target.value as GCSEGrade,
                   })
                 }
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="U">U</option>
                 <option value="G">G</option>
@@ -174,10 +177,10 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({
             </div>
           </div>
 
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
             <div className="flex items-start space-x-3">
               <svg
-                className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0"
+                className="mt-0.5 h-5 w-5 flex-shrink-0 text-blue-600"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -200,17 +203,17 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({
             </div>
           </div>
 
-          <div className="flex justify-end space-x-4 pt-4">
+          <div className="flex justify-end space-x-3">
             <button
               type="button"
               onClick={onClose}
-              className="px-6 py-3 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+              className="rounded-lg border border-gray-300 px-4 py-2 text-gray-700 transition-colors hover:bg-gray-100"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 font-medium shadow-lg"
+              className="rounded-lg bg-blue-600 px-6 py-2 font-semibold text-white shadow-lg transition-all hover:bg-blue-700 hover:shadow-xl"
             >
               Add Student
             </button>
@@ -219,6 +222,4 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({
       </div>
     </div>
   );
-};
-
-export default AddStudentModal;
+}

@@ -1,11 +1,13 @@
-import React, { useState } from "react";
+"use client";
+
+import { useState } from "react";
 import type {
-  Student,
-  MathChapter,
-  SkillLevel,
   AssessmentResult,
   AssessmentType,
-} from "../types/index";
+  MathChapter,
+  SkillLevel,
+  Student,
+} from "@/lib/types";
 
 interface StudentListProps {
   students: Student[];
@@ -15,21 +17,50 @@ interface StudentListProps {
     chapterId: number,
     progress: number,
     mastery: SkillLevel
-  ) => void;
+  ) => Promise<void>;
   onAddAssessment: (
     studentId: number,
     assessment: Omit<AssessmentResult, "id">
-  ) => void;
+  ) => Promise<void>;
   selectedChapter: MathChapter | null;
 }
 
-const StudentList: React.FC<StudentListProps> = ({
+const getGradeColor = (grade: string) => {
+  if (grade.includes("A_STAR")) return "bg-purple-100 text-purple-800";
+  if (grade.includes("A")) return "bg-blue-100 text-blue-800";
+  if (grade.includes("B")) return "bg-green-100 text-green-800";
+  if (grade.includes("C")) return "bg-yellow-100 text-yellow-800";
+  if (grade.includes("D")) return "bg-orange-100 text-orange-800";
+  return "bg-red-100 text-red-800";
+};
+
+const getMasteryColor = (mastery: SkillLevel) => {
+  switch (mastery) {
+    case "Advanced":
+    case "Mastered":
+      return "bg-green-100 text-green-800";
+    case "Intermediate":
+      return "bg-yellow-100 text-yellow-800";
+    case "Beginner":
+      return "bg-red-100 text-red-800";
+    default:
+      return "bg-gray-100 text-gray-800";
+  }
+};
+
+const getProgressColor = (progress: number) => {
+  if (progress >= 80) return "text-green-600";
+  if (progress >= 60) return "text-yellow-600";
+  return "text-red-600";
+};
+
+export default function StudentList({
   students,
   onSelectStudent,
   onUpdateChapter,
   onAddAssessment,
   selectedChapter,
-}) => {
+}: StudentListProps) {
   const [editingStudent, setEditingStudent] = useState<number | null>(null);
   const [editingChapter, setEditingChapter] = useState<number | null>(null);
   const [editForm, setEditForm] = useState({
@@ -47,24 +78,24 @@ const StudentList: React.FC<StudentListProps> = ({
   });
 
   const filteredStudents = selectedChapter
-    ? students.filter((s) =>
-        s.chapters.some((c) => c.name === selectedChapter.name)
+    ? students.filter((student) =>
+        student.chapters.some((chapter) => chapter.name === selectedChapter.name)
       )
     : students;
 
-  const handleEditChapter = (student: Student, chapter: any) => {
+  const handleEditChapter = (student: Student, chapter: MathChapter) => {
     setEditingStudent(student.id);
     setEditingChapter(chapter.id);
     setEditForm({ progress: chapter.progress, mastery: chapter.mastery });
   };
 
-  const handleSaveChapter = (studentId: number, chapterId: number) => {
+  const handleSaveChapter = async (studentId: number, chapterId: number) => {
     if (
       editForm.progress >= 0 &&
       editForm.progress <= 100 &&
       editForm.mastery
     ) {
-      onUpdateChapter(
+      await onUpdateChapter(
         studentId,
         chapterId,
         editForm.progress,
@@ -75,13 +106,13 @@ const StudentList: React.FC<StudentListProps> = ({
     }
   };
 
-  const handleAddAssessment = (studentId: number) => {
+  const handleAddAssessment = async (studentId: number) => {
     if (
       assessmentForm.chapter &&
       assessmentForm.score >= 0 &&
       assessmentForm.score <= 100
     ) {
-      onAddAssessment(studentId, {
+      await onAddAssessment(studentId, {
         chapter: assessmentForm.chapter,
         score: assessmentForm.score,
         type: assessmentForm.type,
@@ -89,40 +120,18 @@ const StudentList: React.FC<StudentListProps> = ({
         feedback: assessmentForm.feedback,
       });
       setShowAddAssessment(null);
-      setAssessmentForm({ chapter: "", score: 0, type: "Quiz", feedback: "" });
+      setAssessmentForm({
+        chapter: "",
+        score: 0,
+        type: "Quiz",
+        feedback: "",
+      });
     }
-  };
-
-  const getGradeColor = (grade: string) => {
-    if (grade.includes("A_STAR")) return "bg-purple-100 text-purple-800";
-    if (grade.includes("A")) return "bg-blue-100 text-blue-800";
-    if (grade.includes("B")) return "bg-green-100 text-green-800";
-    if (grade.includes("C")) return "bg-yellow-100 text-yellow-800";
-    if (grade.includes("D")) return "bg-orange-100 text-orange-800";
-    return "bg-red-100 text-red-800";
-  };
-
-  const getMasteryColor = (mastery: SkillLevel) => {
-    switch (mastery) {
-      case "Advanced":
-      case "Mastered":
-        return "bg-green-100 text-green-800";
-      case "Intermediate":
-        return "bg-yellow-100 text-yellow-800";
-      case "Beginner":
-        return "bg-red-100 text-red-800";
-    }
-  };
-
-  const getProgressColor = (progress: number) => {
-    if (progress >= 80) return "text-green-600";
-    if (progress >= 60) return "text-yellow-600";
-    return "text-red-600";
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-lg">
-      <div className="px-6 py-4 border-b border-gray-200">
+    <div className="rounded-xl bg-white shadow-lg">
+      <div className="border-b border-gray-200 px-6 py-4">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-xl font-bold text-gray-900">Students</h2>
@@ -142,14 +151,14 @@ const StudentList: React.FC<StudentListProps> = ({
       <div className="divide-y divide-gray-200">
         {filteredStudents.map((student) => (
           <div key={student.id} className="px-6 py-4">
-            <div className="flex items-center justify-between mb-4">
+            <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center space-x-4">
                 <div className="flex-shrink-0">
-                  <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-r from-blue-500 to-purple-500">
                     <span className="text-lg font-bold text-white">
                       {student.name
                         .split(" ")
-                        .map((n) => n[0])
+                        .map((name) => name[0])
                         .join("")}
                     </span>
                   </div>
@@ -170,50 +179,57 @@ const StudentList: React.FC<StudentListProps> = ({
                 <div className="text-right">
                   <div className="flex items-center space-x-2">
                     <span
-                      className={`px-3 py-1 text-sm font-medium rounded-full ${getGradeColor(
+                      className={`rounded-full px-3 py-1 text-sm font-medium ${getGradeColor(
                         student.currentGrade
                       )}`}
                     >
                       Current: {student.currentGrade}
                     </span>
                     <span
-                      className={`px-3 py-1 text-sm font-medium rounded-full ${getGradeColor(
+                      className={`rounded-full px-3 py-1 text-sm font-medium ${getGradeColor(
                         student.targetGrade
                       )}`}
                     >
                       Target: {student.targetGrade}
                     </span>
                   </div>
-                  <div className="text-sm text-gray-500 mt-1">
+                  <div className="mt-1 text-sm text-gray-500">
                     Overall:{" "}
                     {Math.round(
-                      student.chapters.reduce((sum, c) => sum + c.progress, 0) /
-                        student.chapters.length
+                      student.chapters.reduce(
+                        (sum, chapter) => sum + chapter.progress,
+                        0
+                      ) / student.chapters.length
                     )}
                     %
                   </div>
                 </div>
+                <button
+                  onClick={() => onSelectStudent(student)}
+                  className="rounded-lg border border-blue-100 px-3 py-1 text-sm font-medium text-blue-600 transition-colors hover:bg-blue-50"
+                >
+                  View Profile
+                </button>
               </div>
             </div>
 
-            {/* Chapter Progress */}
             <div className="mb-4">
-              <h4 className="text-sm font-medium text-gray-700 mb-3">
+              <h4 className="mb-3 text-sm font-medium text-gray-700">
                 Chapter Progress
               </h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 {student.chapters.map((chapter) => (
                   <div
                     key={chapter.id}
-                    className="border border-gray-200 rounded-lg p-3"
+                    className="rounded-lg border border-gray-200 p-3"
                   >
-                    <div className="flex items-center justify-between mb-2">
+                    <div className="mb-2 flex items-center justify-between">
                       <span className="text-sm font-medium text-gray-900">
                         {chapter.name}
                       </span>
                       <div className="flex items-center space-x-2">
                         <span
-                          className={`px-2 py-1 text-xs font-medium rounded-full ${getMasteryColor(
+                          className={`rounded-full px-2 py-1 text-xs font-medium ${getMasteryColor(
                             chapter.mastery
                           )}`}
                         >
@@ -221,10 +237,10 @@ const StudentList: React.FC<StudentListProps> = ({
                         </span>
                         <button
                           onClick={() => handleEditChapter(student, chapter)}
-                          className="text-gray-400 hover:text-gray-600"
+                          className="text-gray-400 transition-colors hover:text-gray-600"
                         >
                           <svg
-                            className="w-4 h-4"
+                            className="h-4 w-4"
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"
@@ -244,83 +260,82 @@ const StudentList: React.FC<StudentListProps> = ({
                     editingChapter === chapter.id ? (
                       <div className="space-y-3">
                         <div>
-                          <label className="block text-xs text-gray-600 mb-1">
-                            Progress (%)
+                          <label className="text-xs font-medium text-gray-600">
+                            Progress (%):
                           </label>
                           <input
                             type="number"
-                            min="0"
-                            max="100"
+                            min={0}
+                            max={100}
                             value={editForm.progress}
-                            onChange={(e) =>
+                            onChange={(event) =>
                               setEditForm({
                                 ...editForm,
-                                progress: parseInt(e.target.value) || 0,
+                                progress: Number(event.target.value),
                               })
                             }
-                            className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
                           />
                         </div>
                         <div>
-                          <label className="block text-xs text-gray-600 mb-1">
-                            Mastery Level
+                          <label className="text-xs font-medium text-gray-600">
+                            Mastery Level:
                           </label>
                           <select
                             value={editForm.mastery}
-                            onChange={(e) =>
+                            onChange={(event) =>
                               setEditForm({
                                 ...editForm,
-                                mastery: e.target.value as SkillLevel,
+                                mastery: event.target.value as SkillLevel,
                               })
                             }
-                            className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
                           >
-                            <option value="">Select Level</option>
                             <option value="Beginner">Beginner</option>
                             <option value="Intermediate">Intermediate</option>
                             <option value="Advanced">Advanced</option>
                             <option value="Mastered">Mastered</option>
                           </select>
                         </div>
-                        <div className="flex space-x-2">
-                          <button
-                            onClick={() =>
-                              handleSaveChapter(student.id, chapter.id)
-                            }
-                            className="px-2 py-1 text-xs font-medium text-white bg-blue-600 rounded hover:bg-blue-700"
-                          >
-                            Save
-                          </button>
+                        <div className="flex items-center justify-end space-x-2">
                           <button
                             onClick={() => {
                               setEditingStudent(null);
                               setEditingChapter(null);
                             }}
-                            className="px-2 py-1 text-xs font-medium text-gray-600 bg-gray-200 rounded hover:bg-gray-300"
+                            className="rounded-lg border border-gray-300 px-3 py-1 text-xs text-gray-600 hover:bg-gray-100"
                           >
                             Cancel
+                          </button>
+                          <button
+                            onClick={() =>
+                              handleSaveChapter(student.id, chapter.id)
+                            }
+                            className="rounded-lg bg-blue-600 px-3 py-1 text-xs font-semibold text-white hover:bg-blue-700"
+                          >
+                            Save
                           </button>
                         </div>
                       </div>
                     ) : (
                       <div>
-                        <div className="flex justify-between items-center mb-1">
-                          <span className="text-xs text-gray-600">
-                            Progress
-                          </span>
+                        <div className="mb-2 flex items-center justify-between">
                           <span
-                            className={`text-xs font-medium ${getProgressColor(
+                            className={`text-lg font-semibold ${getProgressColor(
                               chapter.progress
                             )}`}
                           >
                             {chapter.progress}%
                           </span>
+                          <span className="text-xs text-gray-500">
+                            Mastery: {chapter.mastery}
+                          </span>
                         </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div className="h-2 rounded-full bg-gray-200">
                           <div
-                            className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full"
+                            className="h-2 rounded-full bg-gradient-to-r from-blue-500 to-purple-500"
                             style={{ width: `${chapter.progress}%` }}
-                          ></div>
+                          />
                         </div>
                       </div>
                     )}
@@ -329,82 +344,70 @@ const StudentList: React.FC<StudentListProps> = ({
               </div>
             </div>
 
-            {/* Recent Assessments */}
-            <div className="mb-4">
-              <div className="flex items-center justify-between mb-3">
+            <div>
+              <div className="mb-3 flex items-center justify-between">
                 <h4 className="text-sm font-medium text-gray-700">
                   Recent Assessments
                 </h4>
                 <button
-                  onClick={() =>
-                    setShowAddAssessment(
-                      showAddAssessment === student.id ? null : student.id
-                    )
-                  }
-                  className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                  onClick={() => setShowAddAssessment(student.id)}
+                  className="text-sm font-medium text-blue-600 hover:text-blue-700"
                 >
-                  {showAddAssessment === student.id
-                    ? "Cancel"
-                    : "+ Add Assessment"}
+                  + Add Assessment
                 </button>
               </div>
 
               {showAddAssessment === student.id && (
-                <div className="bg-gray-50 rounded-lg p-4 mb-3">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="mb-4 rounded-lg bg-blue-50 p-4">
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
                     <div>
-                      <label className="block text-xs text-gray-600 mb-1">
+                      <label className="text-xs font-medium text-blue-900">
                         Chapter
                       </label>
-                      <select
+                      <input
+                        type="text"
                         value={assessmentForm.chapter}
-                        onChange={(e) =>
+                        onChange={(event) =>
                           setAssessmentForm({
                             ...assessmentForm,
-                            chapter: e.target.value,
+                            chapter: event.target.value,
                           })
                         }
-                        className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
-                      >
-                        <option value="">Select Chapter</option>
-                        {student.chapters.map((c) => (
-                          <option key={c.id} value={c.name}>
-                            {c.name}
-                          </option>
-                        ))}
-                      </select>
+                        className="mt-1 w-full rounded-lg border border-blue-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                        placeholder="Enter chapter"
+                      />
                     </div>
                     <div>
-                      <label className="block text-xs text-gray-600 mb-1">
+                      <label className="text-xs font-medium text-blue-900">
                         Score (%)
                       </label>
                       <input
                         type="number"
-                        min="0"
-                        max="100"
+                        min={0}
+                        max={100}
                         value={assessmentForm.score}
-                        onChange={(e) =>
+                        onChange={(event) =>
                           setAssessmentForm({
                             ...assessmentForm,
-                            score: parseInt(e.target.value) || 0,
+                            score: Number(event.target.value),
                           })
                         }
-                        className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        className="mt-1 w-full rounded-lg border border-blue-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs text-gray-600 mb-1">
+                      <label className="text-xs font-medium text-blue-900">
                         Type
                       </label>
                       <select
                         value={assessmentForm.type}
-                        onChange={(e) =>
+                        onChange={(event) =>
                           setAssessmentForm({
                             ...assessmentForm,
-                            type: e.target.value as AssessmentType,
+                            type: event.target.value as AssessmentType,
                           })
                         }
-                        className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        className="mt-1 w-full rounded-lg border border-blue-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
                       >
                         <option value="Quiz">Quiz</option>
                         <option value="Test">Test</option>
@@ -413,72 +416,80 @@ const StudentList: React.FC<StudentListProps> = ({
                         <option value="Practice">Practice</option>
                       </select>
                     </div>
-                    <div className="flex items-end">
-                      <button
-                        onClick={() => handleAddAssessment(student.id)}
-                        className="w-full px-3 py-1 text-sm font-medium text-white bg-blue-600 rounded hover:bg-blue-700"
-                      >
-                        Add
-                      </button>
+                    <div>
+                      <label className="text-xs font-medium text-blue-900">
+                        Feedback
+                      </label>
+                      <input
+                        type="text"
+                        value={assessmentForm.feedback}
+                        onChange={(event) =>
+                          setAssessmentForm({
+                            ...assessmentForm,
+                            feedback: event.target.value,
+                          })
+                        }
+                        className="mt-1 w-full rounded-lg border border-blue-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                        placeholder="Optional feedback"
+                      />
                     </div>
+                  </div>
+                  <div className="mt-3 flex justify-end space-x-2">
+                    <button
+                      onClick={() => {
+                        setShowAddAssessment(null);
+                        setAssessmentForm({
+                          chapter: "",
+                          score: 0,
+                          type: "Quiz",
+                          feedback: "",
+                        });
+                      }}
+                      className="rounded-lg border border-blue-200 px-3 py-1 text-xs text-blue-700 hover:bg-blue-100"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={() => handleAddAssessment(student.id)}
+                      className="rounded-lg bg-blue-600 px-3 py-1 text-xs font-semibold text-white hover:bg-blue-700"
+                    >
+                      Save Assessment
+                    </button>
                   </div>
                 </div>
               )}
 
-              <div className="flex space-x-3 overflow-x-auto">
-                {student.recentAssessments.map((assessment, index) => (
+              <div className="space-y-3">
+                {student.recentAssessments.map((assessment) => (
                   <div
-                    key={index}
-                    className="flex-shrink-0 bg-gray-50 rounded-lg p-3 min-w-48"
+                    key={assessment.id}
+                    className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 p-3"
                   >
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium text-gray-900">
+                    <div>
+                      <p className="text-sm font-semibold text-gray-900">
                         {assessment.chapter}
-                      </span>
-                      <span
-                        className={`px-2 py-1 text-xs font-medium rounded-full ${
-                          assessment.score >= 80
-                            ? "bg-green-100 text-green-800"
-                            : assessment.score >= 60
-                            ? "bg-yellow-100 text-yellow-800"
-                            : "bg-red-100 text-red-800"
-                        }`}
-                      >
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {assessment.type} • {assessment.date}
+                      </p>
+                      {assessment.feedback && (
+                        <p className="mt-1 text-xs text-gray-600">
+                          Feedback: {assessment.feedback}
+                        </p>
+                      )}
+                    </div>
+                    <div className="text-right">
+                      <span className="text-lg font-bold text-blue-600">
                         {assessment.score}%
                       </span>
-                    </div>
-                    <div className="text-xs text-gray-600">
-                      <div>
-                        {assessment.type} • {assessment.date}
-                      </div>
-                      {assessment.feedback && (
-                        <div className="mt-1 text-gray-700">
-                          {assessment.feedback}
-                        </div>
-                      )}
                     </div>
                   </div>
                 ))}
               </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex justify-end space-x-3 pt-3 border-t border-gray-200">
-              <button
-                onClick={() => onSelectStudent(student)}
-                className="px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
-              >
-                View Details
-              </button>
-              <button className="px-4 py-2 text-sm font-medium text-green-600 bg-green-50 rounded-lg hover:bg-green-100 transition-colors">
-                Generate Report
-              </button>
             </div>
           </div>
         ))}
       </div>
     </div>
   );
-};
-
-export default StudentList;
+}
